@@ -112,7 +112,7 @@ class Manulife(object):
             str(desc).replace("<br/>","\n")
         ).get_text()
 
-class HackerRankCompanies(object):
+class HackerRankJobsAPI(object):
     """HackerRank connects developers with devs from their platform. This scrapes all the jobs posted there."""
     def __init__(self,query):
         self.BASE_URL = "https://www.hackerrank.com/jobs/search"
@@ -219,7 +219,7 @@ def main():
 ##    s = Manulife("software")
 ##    jobs = s.get_jobs(max_items=1)
 ##    print(jobs)
-    s = HackerRankCompanies("software")
+    s = HackerRankJobsAPI("software")
     print(
         json.dumps(s.get_jobs())
     )
