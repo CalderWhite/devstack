@@ -1,4 +1,4 @@
 Manulife:
-	python3 Tests.py Manulife
+	python3 DevStackBoard/Tests.py Manulife
 HackerRankJobsAPI:
-	python3 Tests.py HackerRankJobsAPI
+	python3 DevStackBoard/Tests.py HackerRankJobsAPI

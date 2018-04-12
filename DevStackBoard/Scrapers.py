@@ -42,7 +42,7 @@ class Manulife(object):
         # scrape the page for the list of jobs (this differs for each class)
         jobs = self.scrape_jobs_page(page)
         
-        job_index = {}
+        job_index = []
         
         i = 0
         
@@ -66,7 +66,10 @@ class Manulife(object):
             if desc == "":
                 raise GetJobError("No job description found for : " + str(url))
             
-            job_index[title] = desc
+            job_index.append({
+                "title" : title,
+                "description" : desc
+            })
             
             # keep track of the iterations in case we pass the max_items
             i += 1
@@ -204,24 +207,29 @@ class HackerRankJobsAPI(object):
         if r.status_code not in self.OK_RESPONSES:
             raise GetJobError("Failed to get info about [%s] on HackerRank's Jobs API." % company_slug)
         
-        jobs = {}
+        jobs = []
         for job in json.loads(r.text)["data"]["response"]:
             # if there is no work_description (which is more specific and preferable),
             # use the plain text smattering of all components of the description
             if job["work_description"] != None:
-                jobs[job["title"]] = job["work_description"]
+                desc= job["work_description"]
             else:
-                jobs[job["title"]] = job["jobs_des_plain"]
-        
+                desc = job["jobs_des_plain"]
+            jobs.append({
+                "title" : job["title"],
+                "description" : desc
+            })
         return jobs
         
 def main():
-##    s = Manulife("software")
-##    jobs = s.get_jobs(max_items=1)
-##    print(jobs)
+    jobs = {}
+    s = Manulife("software")
+    mjobs = s.get_jobs()
+    jobs["manulife"] = mjobs
     s = HackerRankJobsAPI("software")
+    jobs.update(s.get_jobs())
     print(
-        json.dumps(s.get_jobs())
+        json.dumps(jobs)
     )
 
 if __name__ == '__main__':
