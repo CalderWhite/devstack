@@ -11,3 +11,5 @@ install:
 script:
   - make HackerRankJobsAPI
   - make Manulife
+  - make StackParser
+  - make GithubJobsAPI

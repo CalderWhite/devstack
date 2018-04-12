@@ -14,6 +14,9 @@ def Manulife():
 def HackerRankJobsAPI():
     s = Scrapers.HackerRankJobsAPI("software")
     s.get_jobs(max_items=1)
+def GithubJobsAPI():
+    s = Scrapers.GithubJobsAPI("software")
+    s.get_jobs(max_items=1)
 class StackParserTests(object):
     class BadParsing(Exception):
         pass
@@ -36,7 +39,8 @@ def runStackParser():
 TESTS = {
     "Manulife" : Manulife,
     "HackerRankJobsAPI" : HackerRankJobsAPI,
-    "StackParser" : runStackParser
+    "StackParser" : runStackParser,
+    "GithubJobsAPI" : GithubJobsAPI
 }
 
 

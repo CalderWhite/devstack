@@ -27,6 +27,7 @@ class Google(object):
         else:
             b = soup(r.text)
             print(b)
+
 class Manulife(object):
     """This scrapes the first couple results from a query on Manulife's jobs system."""
     def __init__(self,query):
@@ -118,7 +119,7 @@ class Manulife(object):
 class HackerRankJobsAPI(object):
     """HackerRank connects developers with devs from their platform. This scrapes all the jobs posted there."""
     def __init__(self,query):
-        self.BASE_URL = "https://www.hackerrank.com/jobs/search"
+        self.BASE_URL = "https://www.hackerrank.com/api/v2/jobs"
         # query is irrelevant, but we'll keep it anyway
         self.query = query
         self.OK_RESPONSES = [200]
@@ -175,7 +176,7 @@ class HackerRankJobsAPI(object):
             ('company_limit', '100'),
         )
         
-        r = requests.get('https://www.hackerrank.com/api/v2/jobs', headers=headers, params=params)
+        r = requests.get(self.BASE_URL, headers=headers, params=params)
         
         if r.status_code not in self.OK_RESPONSES:
             raise GetMainError(self.BASE_URL + self.query + " responded with a code of " + str(r.status_code))
@@ -220,16 +221,74 @@ class HackerRankJobsAPI(object):
                 "description" : desc
             })
         return jobs
+
+class GithubJobsAPI(object):
+    """This is for public use, so we don't have to be uber-careful about the scraping methods and potential errors."""
+    def __init__(self,query):
+        self.BASE_URL = "https://jobs.github.com/positions.json"
+        # query is irrelevant, but we'll keep it anyway
+        self.query = query
+        self.OK_RESPONSES = [200]
+    
+    def get_jobs(self,max_items=None):
+        """Return all the job titles and descriptions. Limited by the page max."""
         
+        # scrape the page for the list of jobs (this differs for each class)
+        jobs = self.get_jobs_pages()
+        
+        refined_jobs = []
+        
+        i = 0
+        
+        for job in jobs:
+            
+            if max_items != None and i >= max_items:
+                break
+            
+            # add to new index with title and  job description
+
+            refined_jobs.append(
+                self.construct_job(job)
+            )
+            
+            # keep track of the iterations in case we pass the max_items
+            i += 1
+            
+        return refined_jobs
+        
+    def get_jobs_pages(self):
+        """Since each page is limited to 50 entires, go through until you hit an empty page."""
+        jobs = self.get_jobs_page(1)
+        data = []
+        i = 2
+        while i == 2 or data != []:
+            data = self.get_jobs_page(i)
+            jobs.extend(data)
+            i += 1
+        return jobs
+        
+    def get_jobs_page(self,page_num):
+        # error handling is pretty important here
+        r = requests.get(self.BASE_URL + "?page=" + str(page_num))
+        
+        if r.status_code not in self.OK_RESPONSES:
+            raise GetMainError(self.BASE_URL + self.query + " responded with a code of " + str(r.status_code))
+        else:
+            data = json.loads(r.text)
+            
+            return data
+    
+    def construct_job(self,job):
+        return {
+            "title" : job["title"],
+            "description" : job["description"] 
+        }
+    
 def main():
-    jobs = {}
-    s = Manulife("software")
-    mjobs = s.get_jobs()
-    jobs["manulife"] = mjobs
-    s = HackerRankJobsAPI("software")
-    jobs.update(s.get_jobs())
+    s = GithubJobsAPI("software")
+    jobs = s.get_jobs()
     print(
-        json.dumps(jobs)
+        len(jobs)
     )
 
 if __name__ == '__main__':

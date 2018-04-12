@@ -4,3 +4,5 @@ HackerRankJobsAPI:
 	python3 DevStackBoard/Tests.py HackerRankJobsAPI
 StackParser:
 	python3 DevStackBoard/Tests.py StackParser
+GithubJobsAPI:
+	python3 DevStackBoard/Tests.py GithubJobsAPI
