@@ -2,7 +2,7 @@ import json
 import re
 
 class StackParser(object):
-    def __init__(self,excludes):
+    def __init__(self):
         self.DELIMITER_RULE = r'[\-\,]'
         # the largest distance between two delimiters (characterized by DELIMITER_RULE)
         # for it considered to indicated a list
@@ -10,9 +10,19 @@ class StackParser(object):
         # the minimum amount of items in a dev stack list
         self.MIN_LIST_LENGTH = 3
         # a set of regex rules to filter out stacks that aren't actually stacks
-        self.excludes = excludes
+        self.excludes = [
+            r'([0-9]+|[0-9]+\,) employees [0-9]+ agents'
+        ]
         # characters that will be removed from stack items
         self.BAD_CHARACTERS = list(",(){}[]\n\t")
+        
+        self.REPLACES = [
+            (r'<br/>',"\n")
+        ]
+    def replace_terms(self,s):
+        for i in self.REPLACES:
+            s = re.sub(i[0],i[1],s)
+        return s
     
     def cleanse_item(self,s):
         for c in self.BAD_CHARACTERS:
@@ -20,6 +30,8 @@ class StackParser(object):
         return s
 
     def find_stacks(self,text):
+        text = self.replace_terms(text)
+        
         prev = -self.MAX_DELIMITER_DISTANCE - 1
         prevAdded = False
         commas = []
@@ -67,22 +79,18 @@ class StackParser(object):
 def main():
     r = open('dist.json')
     j = json.loads(r.read())
-    s = StackParser([
-        r'([0-9]+|[0-9]+\,) employees [0-9]+ agents'
-    ])
+    s = StackParser()
     stacks = []
-    comps = []
     for company in j:
         for job in j[company]:
             new_stacks = s.find_stacks(job["description"])
-            stacks.extend(
+            stacks.append(
                 new_stacks
             )
-            for i in range(len(new_stacks)):
-                comps.append(company)
     stacks.sort(key=lambda key: len(key),reverse=True)
     for i,stack in enumerate(stacks):
-        print(comps[i] + ":",", ".join(stack))
+        print(",".join(stack))
+    #print(len(comps))
     with open("stacks.json",'w') as w:
         w.write(json.dumps(stacks,indent=4))
 
