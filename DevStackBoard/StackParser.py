@@ -11,6 +11,13 @@ class StackParser(object):
         self.MIN_LIST_LENGTH = 3
         # a set of regex rules to filter out stacks that aren't actually stacks
         self.excludes = excludes
+        # characters that will be removed from stack items
+        self.BAD_CHARACTERS = list(",(){}[]\n\t")
+    
+    def cleanse_item(self,s):
+        for c in self.BAD_CHARACTERS:
+            s = s.replace(c,"")
+        return s
 
     def find_stacks(self,text):
         prev = -self.MAX_DELIMITER_DISTANCE - 1
@@ -30,14 +37,18 @@ class StackParser(object):
                     while prev_index > 0 and text[prev_index] != " ":
                         s = text[prev_index] + s
                         prev_index -= 1
-                    commas[-1].append(s)
+                    commas[-1].append(
+                        self.cleanse_item(s)
+                    )
                 # if we aren't at the end of the string, to avoid an IndexError
                 current_index -= 1
                 s = ""
                 while current_index > 0 and text[current_index] != " ":
                     s = text[current_index] + s
                     current_index -= 1
-                commas[-1].append(s)
+                commas[-1].append(
+                    self.cleanse_item(s)
+                )
                 prevAdded = True
             else:
                 prevAdded = False
@@ -59,9 +70,21 @@ def main():
     s = StackParser([
         r'([0-9]+|[0-9]+\,) employees [0-9]+ agents'
     ])
-    for job in j["c3-iot"]:
-        stacks = s.find_stacks(job["description"])
-        print(stacks)
+    stacks = []
+    comps = []
+    for company in j:
+        for job in j[company]:
+            new_stacks = s.find_stacks(job["description"])
+            stacks.extend(
+                new_stacks
+            )
+            for i in range(len(new_stacks)):
+                comps.append(company)
+    stacks.sort(key=lambda key: len(key),reverse=True)
+    for i,stack in enumerate(stacks):
+        print(comps[i] + ":",", ".join(stack))
+    with open("stacks.json",'w') as w:
+        w.write(json.dumps(stacks,indent=4))
 
 if __name__ == '__main__':
     main()
