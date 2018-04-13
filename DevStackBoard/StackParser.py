@@ -17,7 +17,8 @@ class StackParser(object):
         self.BAD_CHARACTERS = list(",(){}[]\n\t")
         
         self.REPLACES = [
-            (r'<br/>',"\n")
+            (r'<br/>',"\n"),
+            (r'(and\/or|and|or|[\,\/])',",")
         ]
     def replace_terms(self,s):
         for i in self.REPLACES:

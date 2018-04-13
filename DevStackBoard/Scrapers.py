@@ -1,6 +1,7 @@
 import requests
 import json
 from bs4 import BeautifulSoup as soup
+from tqdm import tqdm
 
 class GetMainError(Exception):
     def __init__(self, message):
@@ -283,12 +284,131 @@ class GithubJobsAPI(object):
             "title" : job["title"],
             "description" : job["description"] 
         }
+
+class Facebook(object):
+    """As long as you make it look like it came from a browser, facebook puts the data right into the response."""
+    def __init__(self,query):
+        self.BASE_URL = "https://www.facebook.com/careers/search/"
+        # query is irrelevant, but we'll keep it anyway
+        self.query = query
+        self.OK_RESPONSES = [200]
     
+    def get_jobs(self,max_items=None):
+        """Return all the job titles and descriptions. Limited by the page max."""
+        
+        # scrape the page for the list of jobs (this differs for each class)
+        page = self.get_jobs_page()
+        jobs = self.parse_jobs_page(page)
+
+        refined_jobs = []
+        
+        i = 0
+        
+        pbar = tqdm(total=min(max_items,len(jobs)))
+        
+        for job in jobs:
+            
+            if max_items != None and i >= max_items:
+                break
+            
+            desc = self.get_job_page(job["url"])
+            
+            job["description"] = desc
+            
+            # add to new index with title and  job description
+
+            refined_jobs.append(
+                self.construct_job(job)
+            )
+            
+            # keep track of the iterations in case we pass the max_items
+            i += 1
+            pbar.update()
+            
+        return refined_jobs
+    def get_job_page(self,url):
+        
+        headers = {
+            'accept-encoding': 'utf-8',
+            'accept-language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
+            'upgrade-insecure-requests': '1',
+            'user-agent': 'Mozilla/5.0 (X11; CrOS x86_64 10323.67.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.209 Safari/537.36',
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+            'cache-control': 'max-age=0',
+            'authority': 'www.facebook.com',
+            'cookie': 'datr=ViFVWaEQMdSswGLng54V2mM8; sb=vbliWa3-OlPxcs4_t2DbrQBP; c_user=100013507262874; xs=43%3AlzYxCBbEkASY7g%3A2%3A1499642301%3A1664%3A14914; ; dpr=0.8999999761581421; fr=0oKWsg2SHGy8YGCuw.AWXuCGSy-MmsrAu8zh45GFJJDdE.BZTWvO.aH.FrP.0.0.Ba0CkA.AWVREXEF; wd=1517x698; act=1523592841026%2F1; presence=EDvF3EtimeF1523592949EuserFA21B13507262874A2EstateFDutF1523592949090CEchFDp_5f1B13507262874F100CC',
+        }
+        
+        r = requests.get(url, headers=headers)
+        
+        if r.status_code not in self.OK_RESPONSES:
+            raise GetJobError(url + " responded with a code of " + str(r.status_code))
+        
+        page = soup(r.text)
+        
+        desc = page.findAll("div",{"class":"_wrz"})
+        if len(desc) < 2:
+            raise GetJobError(url + "'s page has been altered. The current scraping method no longer works.")
+        
+        desc = desc[1].get_text()
+        
+        return desc
+        
+    def parse_jobs_page(self,page):
+        job_nodes = page.findAll("div",{"class":"_3k6i"})
+        jobs = []
+        fb = "/".join(self.BASE_URL.split("/")[:3])
+        for node in job_nodes:
+            #print(node)
+            a = node.find("a")
+            if a == None:continue
+            location = node.find("div",{"class":"_3m9 _1n-- _3k6n"})
+            if location == None:continue
+            jobs.append({
+                "title" : a.get_text(),
+                "url" : fb + a["href"],
+                "location" : location.get_text()
+            })
+        return jobs
+        
+    def get_jobs_page(self):
+        # error handling is pretty important here
+
+        headers = {
+            'accept-encoding': 'utf-8',
+            'accept-language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
+            'upgrade-insecure-requests': '1',
+            'user-agent': 'Mozilla/5.0 (X11; CrOS x86_64 10323.67.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.209 Safari/537.36',
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+            'cache-control': 'max-age=0',
+            'authority': 'www.facebook.com',
+            'cookie': 'datr=ViFVWaEQMdSswGLng54V2mM8; sb=vbliWa3-OlPxcs4_t2DbrQBP; c_user=100013507262874; xs=43%3AlzYxCBbEkASY7g%3A2%3A1499642301%3A1664%3A14914; ; dpr=0.8999999761581421; act=1523568393237%2F3; fr=0oKWsg2SHGy8YGCuw.AWWBGufECzf7qsb3U25gCis-86I.BZTWvO.aH.FrP.0.0.Baz8-c.; wd=304x698; presence=EDvF3EtimeF1523570795EuserFA21B13507262874A2EstateFDutF1523570795208CEchFDp_5f1B13507262874F4CC',
+        }
+        
+        params = (
+            ('q', self.query),
+        )
+        
+        r = requests.get(self.BASE_URL, headers=headers, params=params)
+        
+        if r.status_code not in self.OK_RESPONSES:
+            raise GetMainError(self.BASE_URL + self.query + " responded with a code of " + str(r.status_code))
+        else:
+            page = soup(r.text)
+            return page
+    
+    def construct_job(self,job):
+        return {
+            "title" : job["title"],
+            "description" : job["description"],
+            "location" : job["location"]
+        }
+
 def main():
-    s = GithubJobsAPI("software")
-    jobs = s.get_jobs()
+    s = Facebook("software")
+    jobs = s.get_jobs(max_items=10)
     print(
-        len(jobs)
+        json.dumps(jobs,indent=4)
     )
 
 if __name__ == '__main__':
