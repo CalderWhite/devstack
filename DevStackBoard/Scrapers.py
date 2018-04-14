@@ -1,7 +1,8 @@
 import requests
 import json
+import re
 from bs4 import BeautifulSoup as soup
-from tqdm import tqdm
+import xml.etree.cElementTree as ET
 
 class GetMainError(Exception):
     def __init__(self, message):
@@ -13,21 +14,23 @@ class GetJobError(Exception):
         
         super().__init__(message)
 
-class Google(object):
-    def __init__(self,query):
-        self.BASE_URL = "https://careers.google.com/jobs#t=sq&q=j&li=20&l=false&j="
-        self.query = query
-        self.OK_RESPONSES = [200]
-    def get_jobs(self):
+class Job(object):
+    def __init__(self,title,description,location,stacks=None):
+        self.title = title
+        self.description = description
+        self.location = location
+        self.stacks = stacks
         
-        # error handling is pretty important here
-        r = requests.get(self.BASE_URL + self.query)
         
-        if r.status_code not in self.OK_RESPONSES:
-            raise GetMainError(self.BASE_URL + self.query + " responded with a code of " + str(r.status_code))
-        else:
-            b = soup(r.text)
-            print(b)
+    def to_dict(self):
+        """Returns the object as a dict. Not going to engineer the crap out of this, for now."""
+        
+        return {
+            "title" : self.title,
+            "description" : self.description,
+            "location" : self.location
+        }
+        
 
 class Manulife(object):
     """This scrapes the first couple results from a query on Manulife's jobs system."""
@@ -68,10 +71,11 @@ class Manulife(object):
             if desc == "":
                 raise GetJobError("No job description found for : " + str(url))
             
-            job_index.append({
-                "title" : title,
-                "description" : desc
-            })
+            job_index.append(Job(
+                title,
+                desc,
+                None
+            ))
             
             # keep track of the iterations in case we pass the max_items
             i += 1
@@ -217,10 +221,11 @@ class HackerRankJobsAPI(object):
                 desc= job["work_description"]
             else:
                 desc = job["jobs_des_plain"]
-            jobs.append({
-                "title" : job["title"],
-                "description" : desc
-            })
+            jobs.append(Job(
+                job["title"],
+                desc,
+                job["address"]["display_text"]
+            ))
         return jobs
 
 class GithubJobsAPI(object):
@@ -280,10 +285,11 @@ class GithubJobsAPI(object):
             return data
     
     def construct_job(self,job):
-        return {
-            "title" : job["title"],
-            "description" : job["description"] 
-        }
+        return Job(
+            job["title"],
+            job["description"],
+            job["location"]
+        )
 
 class Facebook(object):
     """As long as you make it look like it came from a browser, facebook puts the data right into the response."""
@@ -304,7 +310,6 @@ class Facebook(object):
         
         i = 0
         
-        pbar = tqdm(total=min(max_items,len(jobs)))
         
         for job in jobs:
             
@@ -323,7 +328,6 @@ class Facebook(object):
             
             # keep track of the iterations in case we pass the max_items
             i += 1
-            pbar.update()
             
         return refined_jobs
     def get_job_page(self,url):
@@ -398,18 +402,64 @@ class Facebook(object):
             return page
     
     def construct_job(self,job):
-        return {
-            "title" : job["title"],
-            "description" : job["description"],
-            "location" : job["location"]
-        }
+        return Job(
+            job["title"],
+            job["description"],
+            job["location"]
+        )
 
+class StackOverflowJobsAPI(object):
+    def __init__(self,query):
+        
+        self.BASE_URL = "https://stackoverflow.com/jobs/feed"
+        
+        self.query = query
+        self.OK_RESPONSES = [200]
+    def get_jobs(self):
+        
+        root = self.get_feed()
+        
+        c = root.getchildren()[0].findall("item")
+        
+        jobs = [self.create_job(job) for job in c]
+        
+        job_index = {}
+        
+        for job in jobs:
+            job_index[job["company"]] = job["job"]
+        return job_index
+
+    def get_feed(self):
+        
+        r = requests.get(self.BASE_URL)
+        
+        if r.status_code not in self.OK_RESPONSES:
+            raise GetMainError(self.BASE_URL + self.query + " responded with a code of " + str(r.status_code))
+            
+        return ET.fromstring(r.text)
+        
+    def create_job(self,xml_node):
+        location = xml_node.find("{http://stackoverflow.com/xml_nodes/}location")
+        if location != None:
+            location = location.text.replace("-","").strip()
+        title = xml_node.find("title").text.split(" at ")[0].strip()
+        desc = xml_node.find("description").text
+        stack = [i.text for i in xml_node.findall("category")]
+        company = xml_node.find("{http://www.w3.org/2005/Atom}author").getchildren()[0].text
+        
+        return {
+            "job" : Job(
+                title,
+                desc,
+                location,
+                stacks=[stack]
+            ),
+            "company" : company
+        }
+        
 def main():
-    s = Facebook("software")
-    jobs = s.get_jobs(max_items=10)
-    print(
-        json.dumps(jobs,indent=4)
-    )
+    s = StackOverflowJobsAPI("software")
+    s.get_jobs()
 
 if __name__ == '__main__':
     main()
