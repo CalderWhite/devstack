@@ -39,48 +39,37 @@ class Manulife(object):
         self.query = query
         self.OK_RESPONSES = [200]
     
-    def get_jobs(self,max_items=None):
-        """Return all the job titles and descriptions based on the class's query. Limited by the page max."""
+    def next_job(self):
+        """Get the next job in the queue of jobs to get"""
+        if self.job_queue_index > len(self.job_queue) - 1:
+            return None
+        title, url = self.job_queue[self.job_queue_index]
+        r = requests.get(url)
         
-        # get the page of jobs
+        if r.status_code not in self.OK_RESPONSES:
+            raise GetMainError("job description url responded with a code of " + str(r.status_code))
+            
+        p = soup(r.text)
+        
+        # add to new index with title and  job description
+        desc = self.extract_job_desc_from_page(p)
+        
+        if desc == "":
+            raise GetJobError("No job description found for : " + str(url))
+            
+        self.job_queue_index += 1
+        
+        return Job(
+            title,
+            desc,
+            None
+        )
+        
+    def load_jobs(self):
+        """Load the jobs so that we can get one job at a time."""
+        self.job_queue_index = 0
         page = self.get_jobs_page()
-        # scrape the page for the list of jobs (this differs for each class)
-        jobs = self.scrape_jobs_page(page)
-        
-        job_index = []
-        
-        i = 0
-        
-        for title,url in jobs.items():
-            
-            if max_items != None and i >= max_items:
-                break
-            
-            # get the job description from the url
-            
-            r = requests.get(url)
-            
-            if r.status_code not in self.OK_RESPONSES:
-                raise GetMainError("job description url responded with a code of " + str(r.status_code))
-                
-            p = soup(r.text)
-            
-            # add to new index with title and  job description
-            desc = self.extract_job_desc_from_page(p)
-            
-            if desc == "":
-                raise GetJobError("No job description found for : " + str(url))
-            
-            job_index.append(Job(
-                title,
-                desc,
-                None
-            ))
-            
-            # keep track of the iterations in case we pass the max_items
-            i += 1
-            
-        return job_index
+        self.job_queue = [[title,url] for title,url in self.scrape_jobs_page(page).items()]
         
     def get_jobs_page(self):
         """Get the page containing all the listings (limited to a maximum). Returns a BeautifulSoup object of the page."""
@@ -299,37 +288,28 @@ class Facebook(object):
         self.query = query
         self.OK_RESPONSES = [200]
     
-    def get_jobs(self,max_items=None):
-        """Return all the job titles and descriptions. Limited by the page max."""
+    def next_job(self):
         
-        # scrape the page for the list of jobs (this differs for each class)
+        if self.job_queue_index > len(self.job_queue) - 1:
+            return None
+            
+        job = self.job_queue[self.job_queue_index]
+        
+        desc = self.get_job_page(job["url"])
+        
+        job["description"] = desc
+        
+        # add to new index with title and  job description
+        self.job_queue_index += 1
+        
+        return self.construct_job(job)
+    
+    def load_jobs(self):
+        self.job_queue_index = 0
+        
         page = self.get_jobs_page()
-        jobs = self.parse_jobs_page(page)
-
-        refined_jobs = []
-        
-        i = 0
-        
-        
-        for job in jobs:
-            
-            if max_items != None and i >= max_items:
-                break
-            
-            desc = self.get_job_page(job["url"])
-            
-            job["description"] = desc
-            
-            # add to new index with title and  job description
-
-            refined_jobs.append(
-                self.construct_job(job)
-            )
-            
-            # keep track of the iterations in case we pass the max_items
-            i += 1
-            
-        return refined_jobs
+        self.job_queue = self.parse_jobs_page(page)
+    
     def get_job_page(self,url):
         
         headers = {
@@ -456,10 +436,97 @@ class StackOverflowJobsAPI(object):
             ),
             "company" : company
         }
-        
-def main():
-    s = StackOverflowJobsAPI("software")
-    s.get_jobs()
 
+class SpaceX(object):
+    def __init__(self,query):
+        
+        self.BASE_URL = "http://www.spacex.com/careers/list?field_job_category_tid%5B%5D=761"
+        
+        self.OK_RESPONSES = [200]
+        
+        self.query = query
+    
+    def next_job(self):
+        
+        if self.jobs_queue_index > len(self.jobs_queue) - 1:
+            return None
+        
+        job = self.jobs_queue[self.jobs_queue_index]
+        
+        page = self.get_job_page(job["url"])
+        desc = self.parse_job_page(page)
+        
+        job["description"] = desc
+        
+        self.jobs_queue_index += 1
+        
+        return self.construct_job(job)
+    
+    def parse_job_page(self, page):
+        details = page.find("div",{"class":"details"})
+        # this could be better, but really the StackParser algorithm should be able to handle the odd spacing/formatting of the text 
+        # due to it being ripped out of HTML
+        l = details.find("ul").get_text()
+        
+        return l
+    
+    def get_job_page(self,url):
+        r = requests.get(url)
+        
+        if r.status_code not in self.OK_RESPONSES:
+            raise GetMainError(self.BASE_URL + " responded with a code of " + str(r.status_code))
+        else:
+            return soup(r.text)
+        
+    
+    def load_jobs(self):
+        
+        self.jobs_queue_index = 0
+        
+        page = self.get_jobs_page()
+        self.jobs_queue = self.parse_jobs_page(page)
+    
+    def get_jobs_page(self):
+        
+        r = requests.get(self.BASE_URL)
+        
+        if r.status_code not in self.OK_RESPONSES:
+            raise GetMainError(self.BASE_URL + " responded with a code of " + str(r.status_code))
+        else:
+            return soup(r.text)
+    
+    def parse_jobs_page(self,page):
+        
+        locations = [i.get_text() for i in page.findAll("div",{"class":"field field-name-field-job-location field-type-taxonomy-term-reference field-label-hidden"})]
+        
+        titles = [i.findChildren()[0] for i in page.findAll("td",{"class":"views-field views-field-title"})]
+        
+        jobs = []
+        
+        for i in range(len(locations)):
+            jobs.append({
+                "title" : titles[i].get_text(),
+                "url" : "/".join(self.BASE_URL.split("/")[:3]) + titles[i]["href"],
+                "location" : locations[i]
+            })
+        return jobs
+    
+    def construct_job(self,job):
+        return Job(
+            job["title"],
+            job["description"],
+            job["location"]
+        )
+
+def main():
+    f = SpaceX("software")
+    
+    f.load_jobs()
+    
+    x = f.next_job()
+    
+    while x != None:
+        x = f.next_job()
+    
 if __name__ == '__main__':
     main()
