@@ -10,13 +10,27 @@ import StackParser
 
 def Manulife():
     s = Scrapers.Manulife("software")
-    s.get_jobs(max_items=1)
+    s.load_jobs()
+    s.next_job()
 def HackerRankJobsAPI():
     s = Scrapers.HackerRankJobsAPI("software")
     s.get_jobs(max_items=1)
 def GithubJobsAPI():
     s = Scrapers.GithubJobsAPI("software")
     s.get_jobs(max_items=1)
+def Facebook():
+    s = Scrapers.Facebook("software")
+    s.load_jobs()
+    s.next_job()
+def StackOverflowJobsAPI():
+    s = Scrapers.StackOverflowJobsAPI("software")
+    s.get_jobs()
+def SpaceX():
+    s = Scrapers.SpaceX("software")
+    s.load_jobs()
+    s.next_job()
+
+    
 class StackParserTests(object):
     class BadParsing(Exception):
         pass
@@ -40,7 +54,10 @@ TESTS = {
     "Manulife" : Manulife,
     "HackerRankJobsAPI" : HackerRankJobsAPI,
     "StackParser" : runStackParser,
-    "GithubJobsAPI" : GithubJobsAPI
+    "GithubJobsAPI" : GithubJobsAPI,
+    "Facebook" : Facebook,
+    "StackOverflowJobsAPI" : StackOverflowJobsAPI,
+    "SpaceX" : SpaceX
 }
 
 

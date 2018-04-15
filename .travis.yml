@@ -13,3 +13,6 @@ script:
   - make Manulife
   - make StackParser
   - make GithubJobsAPI
+  - make Facebook
+  - make StackOverflowJobsAPI
+  - make SpaceX
