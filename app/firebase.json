@@ -1,0 +1,30 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "credentials.json",
+      "test.js",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source" : "/companies",
+        "function" : "app"
+      }
+    ],
+    "redirects": [
+      {
+        "source" : "/",
+        "destination" : "https://github.com/CalderWhite/dev-stack-board",
+        "type" : 302
+      },
+      {
+        "source" : "*",
+        "destination" : "https://github.com/CalderWhite/dev-stack-board",
+        "type" : 302
+      }
+    ]
+  }
+}
