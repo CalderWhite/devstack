@@ -101,9 +101,3 @@ class StackParser(object):
                         commas.pop(i)
                         break
         return commas
-
-def main():
-    s = StackParser()
-    x = s.find_stacks("-Develop and SCALE our website as well as internal systems using Perl, DBI, Mason, Sereal, Plack, JavaScript, MySQL, Memcached, Redis, Hadoop, Elasticsearch, git, and CentOS Linux. <br/>-We are agile and work in small scrum teams so expect innovation and experiments!")
-if __name__ == '__main__':
-    main()

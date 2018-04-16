@@ -49,11 +49,7 @@ class Firebase(object):
     
     def add_job(self,j):
         # safe encode the stack so we can query by it later on
-        for i in range(len(j.stacks)):
-            for k in range(len(j.stacks[i])):
-                j.stacks[i][k] = self.firebase_safe_encode(j.stacks[i][k])
-        
-        data = j.to_dict()
+        data["stack"] = [self.firebase_safe_encode(i) for i in data["stack"]]
         if self.batch == None:
             self.db.collection("jobs").add(data)
         else:

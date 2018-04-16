@@ -518,18 +518,3 @@ class SpaceX(object):
             job["description"],
             job["location"]
         )
-
-def main():
-    f = SpaceX("software")
-    
-    f.load_jobs()
-    
-    x = f.next_job()
-    
-    while x != "":
-        x = f.next_job()
-    
-    print(x.to_dict())
-
-if __name__ == '__main__':
-    main()

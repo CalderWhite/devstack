@@ -10,21 +10,25 @@
     ],
     "rewrites": [
       {
-        "source" : "/companies",
+        "source" : "/jobs",
         "function" : "app"
       }
     ],
-    "redirects": [
+    "redirects" : [
       {
         "source" : "/",
-        "destination" : "https://github.com/CalderWhite/dev-stack-board",
-        "type" : 302
-      },
-      {
-        "source" : "*",
         "destination" : "https://github.com/CalderWhite/dev-stack-board",
         "type" : 302
       }
     ]
   }
 }
+
+/*
+      {
+        "source" : "*",
+        "destination" : "https://github.com/CalderWhite/dev-stack-board",
+        "type" : 302
+      }
+    ]
+*/

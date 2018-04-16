@@ -5,6 +5,23 @@ import Firebase
 import time
 from threading import Thread
 
+total = 0
+
+def delete_collection(coll_ref, batch_size):
+    global total
+    docs = coll_ref.limit(batch_size).get()
+    deleted = 0
+
+    for doc in docs:
+        print(u'Deleting doc ({}) {}'.format(total,doc.id))
+        doc.reference.delete()
+        deleted = deleted + 1
+        total += 1
+
+    if deleted >= batch_size:
+        return delete_collection(coll_ref, batch_size)
+
+
 def get_job(company):
     job = "nothing"
     try:
@@ -121,6 +138,9 @@ def reset_database(filename=None):
     
     summaries = parse_jobs(jobs)
     
+    # delete old data
+    delete_collection(f.db.collection("jobs"),10)
+    # add new data
     
     f.new_batch()
     for i,summary in enumerate(summaries):
@@ -135,6 +155,7 @@ def reset_database(filename=None):
     f.commit_batch()
 def main():
     reset_database(filename="dist.json")
+
 
 if __name__ == '__main__':
     main()
