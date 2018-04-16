@@ -15,7 +15,8 @@ class GetJobError(Exception):
         super().__init__(message)
 
 class Job(object):
-    def __init__(self,title,description,location,stacks=None):
+    def __init__(self,company,title,description,location,stacks=None):
+        self.company = company
         self.title = title
         self.description = description
         self.location = location
@@ -26,6 +27,7 @@ class Job(object):
         """Returns the object as a dict. Not going to engineer the crap out of this, for now."""
         
         return {
+            "company" : self.company,
             "title" : self.title,
             "description" : self.description,
             "location" : self.location
@@ -60,6 +62,7 @@ class Manulife(object):
         self.job_queue_index += 1
         
         return Job(
+            "Manulife",
             title,
             desc,
             None
@@ -126,24 +129,23 @@ class HackerRankJobsAPI(object):
         # scrape the page for the list of jobs (this differs for each class)
         companies = self.get_jobs_page()
         
-        job_index = {}
-        
+        jobs = []
         i = 0
         
-        for slug in companies:
+        for name, slug in companies:
             
             if max_items != None and i >= max_items:
                 break
             
             # add to new index with title and  job description
-            jobs = self.extract_job_desc_from_page(slug)
+            _jobs = self.extract_job_desc_from_page(slug,name)
             
-            job_index[slug] = jobs
+            jobs.extend(_jobs)
             
             # keep track of the iterations in case we pass the max_items
             i += 1
             
-        return job_index
+        return jobs
         
     def get_jobs_page(self):
         """Get the page containing all the listings (limited to a maximum). Returns a BeautifulSoup object of the page."""
@@ -184,11 +186,11 @@ class HackerRankJobsAPI(object):
             
             for company in data["data"]:
                 if len(company["jobs"]) > 0:
-                    companies.append(company["jobs"][0]["company_slug"])
+                    companies.append([company["name"],company["jobs"][0]["company_slug"]])
             
             return companies
     
-    def extract_job_desc_from_page(self,company_slug):
+    def extract_job_desc_from_page(self,company_slug,company_name):
         """Returns the description derived from the given BeautifulSoup page, or returns an empty string if no description is provided."""
         r = requests.get(self.INFO_URL % company_slug)
         
@@ -211,6 +213,7 @@ class HackerRankJobsAPI(object):
             else:
                 desc = job["jobs_des_plain"]
             jobs.append(Job(
+                company_name,
                 job["title"],
                 desc,
                 job["address"]["display_text"]
@@ -275,6 +278,7 @@ class GithubJobsAPI(object):
     
     def construct_job(self,job):
         return Job(
+            job["company"],
             job["title"],
             job["description"],
             job["location"]
@@ -383,6 +387,7 @@ class Facebook(object):
     
     def construct_job(self,job):
         return Job(
+            "Facebook",
             job["title"],
             job["description"],
             job["location"]
@@ -403,11 +408,7 @@ class StackOverflowJobsAPI(object):
         
         jobs = [self.create_job(job) for job in c]
         
-        job_index = {}
-        
-        for job in jobs:
-            job_index[job["company"]] = job["job"]
-        return job_index
+        return jobs
 
     def get_feed(self):
         
@@ -427,15 +428,13 @@ class StackOverflowJobsAPI(object):
         stack = [i.text for i in xml_node.findall("category")]
         company = xml_node.find("{http://www.w3.org/2005/Atom}author").getchildren()[0].text
         
-        return {
-            "job" : Job(
-                title,
-                desc,
-                location,
-                stacks=[stack]
-            ),
-            "company" : company
-        }
+        return Job(
+            company,
+            title,
+            desc,
+            location,
+            stacks=[stack]
+        )
 
 class SpaceX(object):
     def __init__(self,query):
@@ -513,6 +512,7 @@ class SpaceX(object):
     
     def construct_job(self,job):
         return Job(
+            "SpaceX",
             job["title"],
             job["description"],
             job["location"]
@@ -525,8 +525,10 @@ def main():
     
     x = f.next_job()
     
-    while x != None:
+    while x != "":
         x = f.next_job()
     
+    print(x.to_dict())
+
 if __name__ == '__main__':
     main()
