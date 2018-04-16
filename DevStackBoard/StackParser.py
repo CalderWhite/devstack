@@ -1,6 +1,30 @@
 import json
 import re
 
+class PositionSummary(object):
+    def __init__(self,title,company,location,stacks):
+        self.title = title
+        self.company = company
+        self.location = location
+        self.stacks = stacks
+    
+    def combine_stacks(self):
+        # convert this for firebase
+        combined_stack = {}
+        for stack in self.stacks:
+            for skill in stack:
+               combined_stack[skill] = True
+        return combined_stack
+    
+    def to_dict(self):
+        
+        return {
+            "title" : self.title,
+            "company" : self.company,
+            "location" : self.location,
+            "stack" : self.combine_stacks()
+        }
+
 class StackParser(object):
     def __init__(self):
         self.DELIMITER_RULE = r'[\-\,]'
