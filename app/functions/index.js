@@ -94,6 +94,9 @@ app.get('/jobs',(request, response) => {
             jobs.push(job.data());
             // if this is our last item, send the list to the client
             if (i == snapshot._size-1){
+                // cachings
+                let cacheTime = (60*10).toString();
+                response.set('Cache-Control', 'public, max-age=' + cacheTime + ', s-maxage' + cacheTime);
                 response.json(jobs)
             }
             i++;
