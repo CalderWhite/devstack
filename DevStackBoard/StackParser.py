@@ -81,7 +81,10 @@ class StackParser(object):
                     # the first item of a list shouldn't be added, since it is still far away from other commas.
                     # but once we figure out that the string of comma delimited words _is_ a list, 
                     # we add the first item.
-                    commas[-1].append(text[indicies[indicies.index(i)-1]])
+                    prev_text = text[indicies[indicies.index(i)-1]]
+                    if prev_text == "":continue
+                    commas[-1].append(prev_text)
+                if text[i] == "":continue
                 commas[-1].append(text[i])
                 prev_added = True
             else:

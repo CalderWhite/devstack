@@ -31,6 +31,7 @@ class Firebase(object):
         I created an encoding method for the keys. It simply uses base64 encoding but removes the "=" padding from the end and inserts a character before the string
         indicating how much padding is required. This kills 2 birds with one stone since "=" aren't allowed in the names, and numbers can't begin the name.
         """
+        os = s
         s = base64.b64encode(s.encode("utf-8")).decode('utf-8')
         i = len(s) - 1
         while s[i] == "=" and i > 0:
@@ -48,11 +49,14 @@ class Firebase(object):
         return base64.b64decode((s[1:] + "="*pad).encode('utf-8')).decode('utf-8')
     
     def add_job(self,j):
+        data = j.to_dict()
+        # safe encode the stack so we can query by it later on
+        data["stack"] = [self.firebase_safe_encode(i) for i in data["stack"]]
         if self.batch == None:
-            self.db.collection("jobs").add(j.to_dict())
+            self.db.collection("jobs").add(data)
         else:
             ref = self.db.collection("jobs").document()
-            self.batch.set(ref,j.to_dict())
+            self.batch.set(ref,data)
     
     def new_batch(self):
         self.batch = self.db.batch()
