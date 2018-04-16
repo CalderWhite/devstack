@@ -51,7 +51,7 @@ class Manulife(object):
         if r.status_code not in self.OK_RESPONSES:
             raise GetMainError("job description url responded with a code of " + str(r.status_code))
             
-        p = soup(r.text)
+        p = soup(r.text,"html5lib")
         
         # add to new index with title and  job description
         desc = self.extract_job_desc_from_page(p)
@@ -82,7 +82,7 @@ class Manulife(object):
         if r.status_code not in self.OK_RESPONSES:
             raise GetMainError(self.BASE_URL + self.query + " responded with a code of " + str(r.status_code))
         else:
-            return soup(r.text)
+            return soup(r.text,"html5lib")
     
     def scrape_jobs_page(self,page):
         """Returns all the jobs listed on the main jobs page."""
@@ -110,7 +110,8 @@ class Manulife(object):
         # replace the <br> tags with line breaks, so we can funnel this into our general algorithm, which can understand line breaks.
         
         return soup(
-            str(desc).replace("<br/>","\n")
+            str(desc).replace("<br/>","\n"),
+            "html5lib"
         ).get_text()
 
 class HackerRankJobsAPI(object):
@@ -332,7 +333,7 @@ class Facebook(object):
         if r.status_code not in self.OK_RESPONSES:
             raise GetJobError(url + " responded with a code of " + str(r.status_code))
         
-        page = soup(r.text)
+        page = soup(r.text,"html5lib")
         
         desc = page.findAll("div",{"class":"_wrz"})
         if len(desc) < 2:
@@ -382,7 +383,7 @@ class Facebook(object):
         if r.status_code not in self.OK_RESPONSES:
             raise GetMainError(self.BASE_URL + self.query + " responded with a code of " + str(r.status_code))
         else:
-            page = soup(r.text)
+            page = soup(r.text,"html5lib")
             return page
     
     def construct_job(self,job):
@@ -447,17 +448,17 @@ class SpaceX(object):
     
     def next_job(self):
         
-        if self.jobs_queue_index > len(self.jobs_queue) - 1:
+        if self.job_queue_index > len(self.job_queue) - 1:
             return None
         
-        job = self.jobs_queue[self.jobs_queue_index]
+        job = self.job_queue[self.job_queue_index]
         
         page = self.get_job_page(job["url"])
         desc = self.parse_job_page(page)
         
         job["description"] = desc
         
-        self.jobs_queue_index += 1
+        self.job_queue_index += 1
         
         return self.construct_job(job)
     
@@ -475,15 +476,15 @@ class SpaceX(object):
         if r.status_code not in self.OK_RESPONSES:
             raise GetMainError(self.BASE_URL + " responded with a code of " + str(r.status_code))
         else:
-            return soup(r.text)
+            return soup(r.text,"html5lib")
         
     
     def load_jobs(self):
         
-        self.jobs_queue_index = 0
+        self.job_queue_index = 0
         
         page = self.get_jobs_page()
-        self.jobs_queue = self.parse_jobs_page(page)
+        self.job_queue = self.parse_jobs_page(page)
     
     def get_jobs_page(self):
         
@@ -492,7 +493,7 @@ class SpaceX(object):
         if r.status_code not in self.OK_RESPONSES:
             raise GetMainError(self.BASE_URL + " responded with a code of " + str(r.status_code))
         else:
-            return soup(r.text)
+            return soup(r.text,"html5lib")
     
     def parse_jobs_page(self,page):
         
