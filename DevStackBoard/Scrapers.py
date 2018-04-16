@@ -51,7 +51,7 @@ class Manulife(object):
         if r.status_code not in self.OK_RESPONSES:
             raise GetMainError("job description url responded with a code of " + str(r.status_code))
             
-        p = soup(r.text,"html5lib")
+        p = soup(r.text,"html.parser")
         
         # add to new index with title and  job description
         desc = self.extract_job_desc_from_page(p)
@@ -82,7 +82,7 @@ class Manulife(object):
         if r.status_code not in self.OK_RESPONSES:
             raise GetMainError(self.BASE_URL + self.query + " responded with a code of " + str(r.status_code))
         else:
-            return soup(r.text,"html5lib")
+            return soup(r.text,"html.parser")
     
     def scrape_jobs_page(self,page):
         """Returns all the jobs listed on the main jobs page."""
@@ -111,7 +111,7 @@ class Manulife(object):
         
         return soup(
             str(desc).replace("<br/>","\n"),
-            "html5lib"
+            "html.parser"
         ).get_text()
 
 class HackerRankJobsAPI(object):
@@ -333,7 +333,7 @@ class Facebook(object):
         if r.status_code not in self.OK_RESPONSES:
             raise GetJobError(url + " responded with a code of " + str(r.status_code))
         
-        page = soup(r.text,"html5lib")
+        page = soup(r.text,"html.parser")
         
         desc = page.findAll("div",{"class":"_wrz"})
         if len(desc) < 2:
@@ -383,7 +383,7 @@ class Facebook(object):
         if r.status_code not in self.OK_RESPONSES:
             raise GetMainError(self.BASE_URL + self.query + " responded with a code of " + str(r.status_code))
         else:
-            page = soup(r.text,"html5lib")
+            page = soup(r.text,"html.parser")
             return page
     
     def construct_job(self,job):
@@ -476,7 +476,7 @@ class SpaceX(object):
         if r.status_code not in self.OK_RESPONSES:
             raise GetMainError(self.BASE_URL + " responded with a code of " + str(r.status_code))
         else:
-            return soup(r.text,"html5lib")
+            return soup(r.text,"html.parser")
         
     
     def load_jobs(self):
@@ -493,7 +493,7 @@ class SpaceX(object):
         if r.status_code not in self.OK_RESPONSES:
             raise GetMainError(self.BASE_URL + " responded with a code of " + str(r.status_code))
         else:
-            return soup(r.text,"html5lib")
+            return soup(r.text,"html.parser")
     
     def parse_jobs_page(self,page):
         
