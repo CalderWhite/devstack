@@ -4,3 +4,4 @@ stacks.json
 credentials.json
 firebase-debug.log
 test.js
+bundle.min.js
