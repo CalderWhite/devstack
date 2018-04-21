@@ -13,13 +13,6 @@
         "source" : "/jobs",
         "function" : "app"
       }
-    ],
-    "redirects" : [
-      {
-        "source" : "/",
-        "destination" : "https://github.com/CalderWhite/dev-stack-board",
-        "type" : 302
-      }
     ]
   }
 }

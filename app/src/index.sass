@@ -1,0 +1,127 @@
+.skill
+    
+    h1
+        text-align: left
+        margin-left: 20px
+        margin-top: 10px
+    
+    .companies
+        $size-factor: 13px
+        /*
+         * make the wrapper div 100%, ul float right and li elements float left 
+         * such that the list is aligned to the right, but the list elements are aligned in their 
+         * correct order
+         */
+        div
+            width: 100%
+            ul
+                list-style: none
+                float: right
+                
+                /* overflow */
+                overflow: hidden
+                height: $size-factor + ($size-factor - 6px)*2 + ($size-factor - 8px)*2 + 2px + 7px
+                
+                li
+                    /* fonts */
+                    font-size: $size-factor
+                    color: blue
+                    
+                    /* spacing */
+                    float: left
+                    margin: $size-factor - 6px
+                    padding: $size-factor - 8px
+                    
+                    /* ui */
+                    background: #dae7f1
+                    border-radius: 10px
+                    
+                    /* mouse interaction */
+                    cursor: pointer
+                    user-select: none
+                    
+                    .company-rank
+                    
+                        /* font */
+                        font-size: $size-factor - 4px
+                        color: white
+                        font-weight: bold
+                        
+                        /* spacing / shape */
+                        padding: 2px
+                        
+                        height: $size-factor*(3/2)
+                        width: $size-factor*(3/2)
+                        display: inline-block
+                        
+                        /* positioning */
+                        
+                        position: relative
+                        top: -2px
+                        
+                        border-radius: $size-factor
+                    
+                    .company-rank-1
+                        background: gold
+                    .company-rank-1:after
+                        content: "1ˢᵗ"
+                        vertical-align: -webkit-baseline-middle
+                    
+                    .company-rank-2
+                        background: silver
+                    .company-rank-2:after
+                        content: "2ⁿᵈ"
+                        vertical-align: -webkit-baseline-middle
+                    
+                    .company-rank-3
+                        background: #e8a916
+                    .company-rank-3:after
+                        content: "3ʳᵈ"
+                        vertical-align: -webkit-baseline-middle
+    .spacer
+        position: relative
+        color: white
+        width: 100%
+        display: block
+        max-height: 50px
+        overflow: hidden
+.results
+    list-style: none
+    max-height: 100%
+    overflow-y: scroll
+    margin: 0 auto
+    
+    max-width: 700px
+    min-width: 500px
+    width: 50%
+    
+    padding-bottom: 10px
+    
+    .result
+        /* card sizing */
+        max-width: 700px
+        min-width: 400px
+        width: 60%
+        margin: 0 auto
+        margin-top: 10px
+.main
+    position: absolute
+    width: 100%
+    height: 100%
+
+.row
+    margin: 0px
+
+/* custom scrollbar */
+::-webkit-scrollbar 
+    width: 7px
+    opacity: 0.7
+
+::-webkit-scrollbar-track 
+    box-shadow: inset 0 0 5px grey
+    border-radius: 10px
+
+::-webkit-scrollbar-thumb 
+    background: #989898
+    border-radius: 10px
+    opacity: 0.4
