@@ -6,6 +6,8 @@ const querystring = require('querystring');
 
 const app = express();
 
+const MAX_RESULTS = 100;
+
 // credentials init
 // if we're in our local env, then use credentials.json.
 // if this is production, us the firebase config variables
@@ -81,12 +83,23 @@ app.get('/jobs',(request, response) => {
         );
     }
     
+    // get limit
+    let limit = MAX_RESULTS
+    if (Object.keys(query).includes('limit')) {
+        limit = Math.min(Number(query.limit),MAX_RESULTS);
+    }
+    
     // for now, limit queries to 100 results
-    ref = ref.limit(100)
+    ref = ref.limit(limit)
     console.log("Getting...")
     // ask firebase to get all jobs
     ref.get()
     .then((snapshot) => {
+        // check if there are no results, so we don't leave the user hanging
+        if (snapshot.size == 0){
+            response.json([])
+        }
+        
         // generate a list of jobs asynchronously
         let jobs = [];
         let i = 0
