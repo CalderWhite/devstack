@@ -1,4 +1,4 @@
-from DevStackBoard.StackParser import StackParser, PositionSummary
+from DevStackBoard.StackParser import StackParser, PositionSummary, SkillSummary
 from DevStackBoard.Scrapers import *
 
 import Firebase
@@ -7,19 +7,41 @@ from threading import Thread
 
 total = 0
 
-def delete_collection(coll_ref, batch_size):
+def save_jobs(filename, jobs):
+    print("Converting jobs to json...")
+    dist = []
+    for i in range(len(jobs)):
+        dist.append(jobs[i].to_dict())
+    print("Saving snapshot...")
+    json.dump(jobs,open(filename,'w'),indent=4)
+
+def save_skills(filename, skills):
+    json.dump([i.to_dict() for i in skills],open("skills.json",'w'),indent=4)
+
+def skill_orient(summaries):
+    """Convert from having a list of position summaries with stacks, to having a list of stacks with companies that use them."""
+    skills = {}
+    for summary in summaries:
+        for skill in summary.combine_stacks():
+            if skill not in skills:
+                skills[skill] = SkillSummary(skill)
+            skills[skill].increment_company(summary.company)
+    
+    return [skills[i] for i in skills]
+
+def delete_collection(coll_ref, batch_size, path):
     global total
     docs = coll_ref.limit(batch_size).get()
     deleted = 0
 
     for doc in docs:
-        print(u'Deleting doc ({}) {}'.format(total,doc.id))
+        print(u'Deleting doc ({}) {}/{}'.format(total,path,doc.id))
         doc.reference.delete()
         deleted = deleted + 1
         total += 1
 
     if deleted >= batch_size:
-        return delete_collection(coll_ref, batch_size)
+        return delete_collection(coll_ref, batch_size, path)
 
 
 def get_job(company):
@@ -69,6 +91,7 @@ def get_all_jobs():
         print(message)
     
     # then do generators
+    global gets
     gets = [
         Manulife("software"),
         SpaceX("software"),
@@ -105,11 +128,7 @@ def get_all_jobs():
             i = (i+1) % len(gets)
         except ZeroDivisionError:
             break
-    #for i in range(len(jobs)):
-    #    jobs[i] = jobs[i].to_dict()
-    #print("Saving snapshot...")
-    #with open("dist.json",'w') as w:
-    #    w.write(json.dumps(jobs,indent=4))
+    save_jobs("jobs.json",jobs)
     return jobs
 def parse_jobs(jobs):
     s = StackParser()
@@ -143,13 +162,23 @@ def reset_database(filename=None):
         ]
     else:
         jobs = get_all_jobs()
-    
+        
     summaries = parse_jobs(jobs)
     
-    # delete old data
-    delete_collection(f.db.collection("jobs"),10)
-    # add new data
+    print("Creating skill mirror or data...")
+    skills = skill_orient(summaries)
     
+    save_skills("skills.json",skills)
+    
+    # delete old data
+    #delete_collection(f.db.collection("jobs"),10,"jobs")
+    #delete_collection(f.db.collection("skills"),10,"skills")
+    
+    # add new data
+    """
+    # first jobs
+    print("Uploading jobs to firebase...")
+    total_jobs = 0
     f.new_batch()
     for i,summary in enumerate(summaries):
         # since batches cannot exceed 500 writes,
@@ -158,11 +187,31 @@ def reset_database(filename=None):
             print("Sending batch %s of %s to the firestore database." % ((i // 500),(len(summaries) // 500) + 1))
             f.commit_batch()
             f.new_batch()
-        f.add_job(summary)
+        f.add_item(summary,"jobs")
+        total_jobs += 1
     print("Sending batch {0} of {0} to the firestore database.".format((len(summaries) // 500) + 1))
     f.commit_batch()
+    print("A total of %s jobs were successfully uploaded to firebase." % total_jobs)
+    """
+    # now skills
+    print("Uploading skills to firebase...")
+    total_skills = 0
+    f.new_batch()
+    for i,skill in enumerate(skills):
+        # since batches cannot exceed 500 writes,
+        # group them by 500
+        if i % 500 == 0 and i != 0:
+            print("Sending batch %s of %s to the firestore database." % ((i // 500),(len(skills) // 500) + 1))
+            f.commit_batch()
+            f.new_batch()
+        f.add_item(skill,"skills")
+        total_skills += 1
+    print("Sending batch {0} of {0} to the firestore database.".format((len(skills) // 500) + 1))
+    f.commit_batch()
+    print("A total of %s skills were successfully uploaded to firebase." % total_skills)
+
 def main():
-    reset_database(filename="dist.json")
+    reset_database(filename="jobs.json")
 
 
 if __name__ == '__main__':

@@ -4,6 +4,7 @@ import re
 from bs4 import BeautifulSoup as soup
 import xml.etree.cElementTree as ET
 from threading import Thread
+import html
 
 class GetMainError(Exception):
     def __init__(self, message):
@@ -545,6 +546,7 @@ class HackerNewsWhoIsHiring(object):
             for i in self.get_item(latest_id)["kids"]
         ]
         jobs = []
+        i = 0
         
         for _id in ids:
             #print("(%s/%s) Getting %s..." % (i,len(ids),_id))
@@ -557,12 +559,15 @@ class HackerNewsWhoIsHiring(object):
                 item = self.get_item(_id)
                 
                 jobs.append(item)
-            
+                
             t = Thread(target=add,args=(_id,))
             t.start()
-            
+            i += 1
             # keep track of the iterations in case we pass the max_items
-        while len(jobs) != len(ids):
+        largest = len(ids)
+        if max_items != None:
+            largest = max_items
+        while len(jobs) != largest:
             pass
         for i in range(len(jobs)-1,-1,-1):
             if jobs[i] == None or ("deleted" in jobs[i] and jobs[i]['deleted']):
@@ -600,34 +605,52 @@ class HackerNewsWhoIsHiring(object):
         
         return json.loads(r.text)
     
-    def parse_job_desc(self,desc):
-        
-        page = soup(desc, "html.parser")
+    def parse_job_desc(self,text):
         
         company = None
         location = None
-        desc = ""
+        desc = []
         
-        for i, p in enumerate(page.findAll("p")):
+        for i, p in enumerate(text.split("<p>")):
             if i == 0:
-                info = p.get_text().split(" | ")
+                info = p.split(" | ")
                 # though there is always more data than just the company,
                 # the company being the first item is the only thing that remains consistant
                 # throughout all the postings
                 company = info[0]
+                best_match = 100
+                # keywords defined by the declared posting format (go to any Who's Hiring thread. It's declared at the top)
+                BAD = ["REMOTE","ONSITE","INTERNS","VISA"]
                 for j in info[1:]:
-                    if j.find(",") > -1:
+                    bad_boi = False
+                    for b in BAD:
+                        #print(b in j.upper(),j.upper(),b)
+                        if b in j.upper():
+                            bad_boi = True
+                            break
+                    if bad_boi:
+                        continue
+                    
+                    commas = len(re.findall(",",j))
+                    if 2 - commas < best_match and 2 - commas >= 0 and commas != 0:
                         location = j
+                if location == None and len(info) == 2:
+                    location = info[1]
             else:
-                desc += p.get_text()
+                desc.append(p)
+        # parse escapes
+        if location != None:
+            location = html.unescape(location)
+        if company != None:
+            company = html.unescape(company)
+        
         return Job(
             company,
             None,
-            desc,
+            "<p>".join(desc),
             location
         )
 
 if __name__ == '__main__':
     s = HackerNewsWhoIsHiring("software")
     j = s.get_jobs()
-    print(j)

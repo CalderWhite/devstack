@@ -33,7 +33,7 @@ class Firebase(object):
         """
         s = base64.b64encode(s.encode("utf-8")).decode('utf-8')
         i = len(s) - 1
-        while s[i] == "=" and i > 0:
+        while i > 0 and s[i] == "=":
             i -= 1
         c = len(s) - i - 1
         meta = chr(97 + c)
@@ -47,17 +47,28 @@ class Firebase(object):
         pad = ord(s[0]) - 97
         return base64.b64decode((s[1:] + "="*pad).encode('utf-8')).decode('utf-8')
     
-    def add_job(self,j):
-        # safe encode the stack so we can query by it later on
-        for i in range(len(j.stacks)):
-            for k in range(len(j.stacks[i])):
-                j.stacks[i][k] = self.firebase_safe_encode(j.stacks[i][k])
+    def add_item(self,j,path):
+        # safe encode the item's contents for queries
+        if path == "jobs":
+            # safe encode the stack so we can query by it later on
+            for i in range(len(j.stacks)):
+                for k in range(len(j.stacks[i])):
+                    j.stacks[i][k] = self.firebase_safe_encode(j.stacks[i][k])
+        elif path == "skills":
+            new_companies = {}
+            for i in j.companies:
+                new_companies[
+                    self.firebase_safe_encode(i)
+                ] = j.companies[i]
+            j.companies = new_companies
+        else:
+            raise Exception("Unknown path.")
         
         data = j.to_dict()
         if self.batch == None:
-            self.db.collection("jobs").add(data)
+            self.db.collection(path).add(data)
         else:
-            ref = self.db.collection("jobs").document()
+            ref = self.db.collection(path).document()
             self.batch.set(ref,data)
     
     def new_batch(self):

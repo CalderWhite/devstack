@@ -1,12 +1,24 @@
 import json
 import re
+from bs4 import BeautifulSoup as soup
 
 class PositionSummary(object):
+    """Stores the information about the required skills for a job posting, as well as meta data for that job."""
     def __init__(self,title,company,location,stacks):
         self.title = title
+        if title != None:
+            self.title = self.title.upper()
         self.company = company
+        if company != None:
+            self.company = self.company.upper()
         self.location = location
+        if location != None:
+            self.location = self.location.upper()
         self.stacks = stacks
+        # convert all stacks to upper
+        for i in range(len(stacks)):
+            for j in range(len(stacks[i])):
+                self.stacks[i][j] = self.stacks[i][j].upper()
     
     def combine_stacks(self):
         # convert this for firebase
@@ -23,6 +35,34 @@ class PositionSummary(object):
             "company" : self.company,
             "location" : self.location,
             "stack" : self.combine_stacks()
+        }
+class SkillSummary(object):
+    """Stores information about a skill required for tech. Being the companies that use it."""
+    def __init__(self,name,*args):
+        self.name = name.upper()
+        self.companies = {}
+        if len(args) > 0:
+            self.companies = args[0]
+        self.total = 0
+        if len(args) > 1:
+            self.total = args[1]
+    
+    def add_total(self,n):
+        self.total += n
+    
+    def increment_company(self,company):
+        comapny = company.upper()
+        if company not in self.companies:
+            self.companies[company] = 0
+        self.companies[company] += 1
+        self.add_total(1)
+    
+    def to_dict(self):
+        return {
+            "name" : self.name,
+            "companies" : self.companies,
+            "total" : self.total,
+            "totalCompanies" : len(self.companies)
         }
 
 class StackParser(object):
@@ -52,6 +92,8 @@ class StackParser(object):
         return s
     
     def cleanse_item(self,s):
+        # remove all HTML
+        s = soup(s,"html.parser").get_text()
         for c in self.BAD_CHARACTERS:
             s = s.replace(c,"")
         return s
