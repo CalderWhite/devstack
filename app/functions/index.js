@@ -7,6 +7,7 @@ const querystring = require('querystring');
 const app = express();
 
 const MAX_RESULTS = 100;
+const CACHE_TIME = 60*10;
 
 // credentials init
 // if we're in our local env, then use credentials.json.
@@ -52,37 +53,7 @@ function firebaseSafeDecode(s){
         'base64'
     ).toString('ascii');
 }
-
-// endpoint to query the jobs by company, stack, location
-app.get('/jobs',(request, response) => {
-    // get the parameters given by the query string so we can cater to its needs
-    let query = querystring.parse(request.url.split('?')[1])
-    let ref = db.collection('jobs');
-    console.log(query)
-    
-    // filtering by skills
-    if (Object.keys(query).includes('skills')) {
-        let skills = query.skills.split(',');;
-        for (let i = skills.length; i--; ) {
-            console.log(firebaseSafeEncode(skills[i]))
-            ref = ref.where(
-                'stack.' + firebaseSafeEncode(skills[i]),
-                '==',
-                true
-            );
-        }
-        
-    }
-    
-    // filtering by location
-    if (Object.keys(query).includes('location')) {
-        ref = ref.where(
-            "location",
-            "==",
-            query.location
-        );
-    }
-    
+function returnQuery(request, response, query, ref) {
     // get limit
     let limit = MAX_RESULTS
     if (Object.keys(query).includes('limit')) {
@@ -108,8 +79,7 @@ app.get('/jobs',(request, response) => {
             // if this is our last item, send the list to the client
             if (i == snapshot._size-1){
                 // cachings
-                let cacheTime = (60*10).toString();
-                response.set('Cache-Control', 'public, max-age=' + cacheTime + ', s-maxage' + cacheTime);
+                //response.set('Cache-Control', 'public, max-age=' + CACHE_TIME.toString() + ', s-maxage' + CACHE_TIME.toString());
                 response.json(jobs)
             }
             i++;
@@ -123,6 +93,48 @@ app.get('/jobs',(request, response) => {
             .status(500)
             .send("Error occurred retrieving positions.")
     });
+}
+
+// endpoint for skills sorted by amount of companies using it
+app.get('/skills',(request,response) => {
+    let query = querystring.parse(request.url.split('?')[1])
+    let ref = db.collection('skills');
+    
+    ref = ref.orderBy('totalCompanies','desc');
+    
+    returnQuery(request, response, query, ref);
+})
+
+// endpoint to query the jobs by company, stack, location
+app.get('/jobs',(request, response) => {
+    // get the parameters given by the query string so we can cater to its needs
+    let query = querystring.parse(request.url.split('?')[1])
+    let ref = db.collection('jobs');
+    
+    // filtering by skills
+    if (Object.keys(query).includes('skills')) {
+        let skills = query.skills.split(',');;
+        for (let i = skills.length; i--; ) {
+            console.log(firebaseSafeEncode(skills[i]))
+            ref = ref.where(
+                'stack.' + firebaseSafeEncode(skills[i]),
+                '==',
+                true
+            );
+        }
+        
+    }
+    
+    // filtering by location
+    if (Object.keys(query).includes('location')) {
+        ref = ref.where(
+            "location",
+            "==",
+            query.location
+        );
+    }
+    
+    returnQuery(request, response, query, ref);
 })
 
 // // Create and Deploy Your First Cloud Functions

@@ -12,6 +12,10 @@
       {
         "source" : "/jobs",
         "function" : "app"
+      },
+      {
+        "source" : "/skills",
+        "function" : "app"
       }
     ]
   }
