@@ -60,6 +60,14 @@ def get_all_jobs():
         message = template.format(type(ex).__name__, ex.args)
         print(message)
     
+    s = HackerNewsWhoIsHiring("software")
+    try:
+        jobs.extend(s.get_jobs())
+    except Exception as ex:
+        template = "HackerNewsWhoIsHiring failed. {0} occurred. Arguments:\n{1!r}"
+        message = template.format(type(ex).__name__, ex.args)
+        print(message)
+    
     # then do generators
     gets = [
         Manulife("software"),

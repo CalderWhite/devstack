@@ -3,6 +3,7 @@ import json
 import re
 from bs4 import BeautifulSoup as soup
 import xml.etree.cElementTree as ET
+from threading import Thread
 
 class GetMainError(Exception):
     def __init__(self, message):
@@ -518,3 +519,115 @@ class SpaceX(object):
             job["description"],
             job["location"]
         )
+
+class HackerNewsWhoIsHiring(object):
+    """
+    Hacker News has a community "Who's Hiring", and this utilizes the hacker-news api to get all the jobs posted.
+    Though this should technically be a generator, the hacker-news api is **WAY** faster than any website.
+    Thus it's simply cleaner to thread all the requests like this without any wait time inbetween.
+    (Hacker News partnered with Google to make the api in firebase. Their servers can take the traffic as long as it doesn't exceed 1000 requests in under a minute )
+    """
+    def __init__(self,query):
+        self.BASE_URL = "https://news.ycombinator.com/submitted?id=whoishiring"
+        self.API_URL = "https://hacker-news.firebaseio.com/v0/item/%s.json"
+        # query is irrelevant, but we'll keep it anyway
+        self.query = query
+        self.OK_RESPONSES = [200]
+    
+    def get_jobs(self,max_items=None):
+        """Return all the job titles and descriptions based on the class's query. Limited by the page max."""
+        
+        # scrape the page for the list of jobs (this differs for each class)
+        page = self.get_jobs_page()
+        latest_id = self.get_latest_list(page)
+        ids = [
+            str(i)
+            for i in self.get_item(latest_id)["kids"]
+        ]
+        jobs = []
+        
+        for _id in ids:
+            #print("(%s/%s) Getting %s..." % (i,len(ids),_id))
+            
+            if max_items != None and i >= max_items:
+                break
+            
+            # add to new index with title and  job description
+            def add(item_id):
+                item = self.get_item(_id)
+                
+                jobs.append(item)
+            
+            t = Thread(target=add,args=(_id,))
+            t.start()
+            
+            # keep track of the iterations in case we pass the max_items
+        while len(jobs) != len(ids):
+            pass
+        for i in range(len(jobs)-1,-1,-1):
+            if jobs[i] == None or ("deleted" in jobs[i] and jobs[i]['deleted']):
+                jobs.pop(i)
+            else:
+                jobs[i] = self.parse_job_desc(jobs[i]["text"])
+        return jobs
+            
+    def get_jobs_page(self):
+        """Get the page containing all the listings (limited to a maximum). Returns a BeautifulSoup object of the page."""
+        
+        r = requests.get(self.BASE_URL)
+        
+        if r.status_code not in self.OK_RESPONSES:
+            raise GetMainError(self.BASE_URL + self.query + " responded with a code of " + str(r.status_code))
+        else:
+            return soup(r.text, "html.parser")
+    
+    def get_latest_list(self,page):
+        t = page.findAll("a",{"class":"storylink"})
+        
+        for a in t:
+            if a.get_text().lower().find("who is hiring") > -1:
+                return a["href"].split("=")[1]
+        
+        raise GetMainError("No Who's Hiring item for HackerNew's Who's Hiring thread list.")
+        
+    def get_item(self,_id):
+        
+        url = self.API_URL % _id
+        r = requests.get(url)
+        
+        if r.status_code not in self.OK_RESPONSES:
+            raise GetJobError("Cannot get from hacker-news api: " + url)
+        
+        return json.loads(r.text)
+    
+    def parse_job_desc(self,desc):
+        
+        page = soup(desc, "html.parser")
+        
+        company = None
+        location = None
+        desc = ""
+        
+        for i, p in enumerate(page.findAll("p")):
+            if i == 0:
+                info = p.get_text().split(" | ")
+                # though there is always more data than just the company,
+                # the company being the first item is the only thing that remains consistant
+                # throughout all the postings
+                company = info[0]
+                for j in info[1:]:
+                    if j.find(",") > -1:
+                        location = j
+            else:
+                desc += p.get_text()
+        return Job(
+            company,
+            None,
+            desc,
+            location
+        )
+
+if __name__ == '__main__':
+    s = HackerNewsWhoIsHiring("software")
+    j = s.get_jobs()
+    print(j)
