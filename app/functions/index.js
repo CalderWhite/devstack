@@ -67,16 +67,18 @@ function returnQuery(request, response, query, ref) {
     if (Object.keys(query).includes('page')) {
         page = Math.min(
             Number(query.page),
-            MAX_PAGE*(MAX_RESULTS/limit) - 1
+            MAX_PAGE*(MAX_RESULTS/limit)
         )
     }
+    console.log((page-1)*limit);
     
-    // apply query limits
-    if (page != 1){
-        ref = ref
-            .startAt((page-1)*limit)
-    }
-    ref = ref.limit(limit)
+    // since firebase requires a result to start after, the user would have to supply a result.
+    // that's no issue functionally, however, from a security perspective there is no way
+    // to limit the depth of queries. The user can chain as many queries as they like.
+    // Thus, we simply limit the query to the user's page * limit (up until a MAX_PAGE,MAX_RESULTS)
+    // and return the last 10 of that set as the page.
+    // It doesn't use firestore's functionality, but it does exactly what we want it to do.
+    ref = ref.limit(page*limit)
    
     console.log("Getting...")
     // ask firebase to get all jobs
@@ -91,12 +93,15 @@ function returnQuery(request, response, query, ref) {
         let jobs = [];
         let i = 0
         snapshot.forEach(job=>{
-            jobs.push(job.data());
-            // if this is our last item, send the list to the client
-            if (i == snapshot._size-1){
-                // cachings
-                response.set('Cache-Control', 'public, max-age=' + CACHE_TIME.toString() + ', s-maxage' + CACHE_TIME.toString());
-                response.json(jobs)
+            // ignore all data not in the requested page
+            if (i >= (page-1)*limit){
+                jobs.push(job.data());
+                // if this is our last item, send the list to the client
+                if (i == snapshot._size-1){
+                    // cachings
+                    response.set('Cache-Control', 'public, max-age=' + CACHE_TIME.toString() + ', s-maxage' + CACHE_TIME.toString());
+                    response.json(jobs)
+                }
             }
             i++;
         })
