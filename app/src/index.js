@@ -1,11 +1,17 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-import Bootstrap from 'bootstrap/dist/css/bootstrap.css';
-import "./index.sass"
-
-
+// 3rd party libraries
 const $ = require("jquery");
+import Bootstrap from 'bootstrap/dist/css/bootstrap.css';
+
+
+// 3rd party components
+import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
+import CircularProgress from 'material-ui/CircularProgress';
+
+// import 1st party styles sheets
+import "./index.sass"
 
 function firebaseSafeEncode(s){
     s = btoa(s);
@@ -78,15 +84,18 @@ class QueryResults extends React.Component {
     };
     this.addItems = this.addItems.bind(this);
     this.onScroll = this.onScroll.bind(this);
-    
+    this.componentDidMount = this.componentDidMount.bind(this);
+  }
+  
+  componentDidMount(){
     this.addItems("skills");
   }
   
   addItems(collection) {
-    console.log(this.state.page);
     let url = window.location.protocol + "//" + window.location.host + "/" + collection + "?page=" + this.state.page.toString() + "&limit=10";
-    console.log(url);
+    
     let comp = this;
+
     $.getJSON(url, data => {
       let newItems = this.state.items;
       for(let i = 0; i < data.length; i++) {
@@ -105,7 +114,7 @@ class QueryResults extends React.Component {
         // set the newly reconstructed company list
         data[i].companies = companies;
       }
-      console.log(data);
+
       newItems = newItems.concat(data);
 
       comp.setState({
@@ -144,6 +153,7 @@ class QueryResults extends React.Component {
             </li>
           )
         }
+        <CircularProgress size={60} thickness={5} />
       </ul>
     );
   }
@@ -156,9 +166,11 @@ class App extends React.Component {
   
   render() {
     return (
-      <center className="main">
-        <QueryResults />
-      </center>
+      <MuiThemeProvider>
+        <center className="main">
+          <QueryResults />
+        </center>
+      </MuiThemeProvider>
     )
   }
 }
