@@ -6,8 +6,12 @@ const querystring = require('querystring');
 
 const app = express();
 
-const MAX_RESULTS = 100;
+const MAX_RESULTS = 50;
 const CACHE_TIME = 60*10;
+// this is relative to the MAX_RESULTS. this limit will be adjusted if the user
+// voluntarily sets their limit to a lower number. 
+// For example. limit=25, therefore the highest page will actually be 4
+const MAX_PAGE = 2;
 
 // credentials init
 // if we're in our local env, then use credentials.json.
@@ -59,9 +63,21 @@ function returnQuery(request, response, query, ref) {
     if (Object.keys(query).includes('limit')) {
         limit = Math.min(Number(query.limit),MAX_RESULTS);
     }
+    let page = 1
+    if (Object.keys(query).includes('page')) {
+        page = Math.min(
+            Number(query.page),
+            MAX_PAGE*(MAX_RESULTS/limit) - 1
+        )
+    }
     
-    // for now, limit queries to 100 results
+    // apply query limits
+    if (page != 1){
+        ref = ref
+            .startAt((page-1)*limit)
+    }
     ref = ref.limit(limit)
+   
     console.log("Getting...")
     // ask firebase to get all jobs
     ref.get()
