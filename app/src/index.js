@@ -7,6 +7,24 @@ import "./index.sass"
 
 const $ = require("jquery");
 
+function firebaseSafeEncode(s){
+    s = btoa(s);
+    let i = s.length - 1;
+    while(s[i] == '=' && i > 0) {
+        i --;
+    }
+    let c = s.length - i - 1;
+    let meta = String.fromCharCode(97 + c);
+    
+    return meta + s.replace(/\=/g,'');
+}
+function firebaseSafeDecode(s){
+    let pad = s.charCodeAt(0) - 97;
+    return atob(
+      s.substring(1,s.length) + '='.repeat(pad)
+    )
+}
+
 class Skill extends React.Component {
   constructor(props) {
     super(props);
@@ -14,6 +32,7 @@ class Skill extends React.Component {
       companies: props.companies,
       text: props.name
     }
+    //console.log(this.state.companies)
   }
   render() {
     return (
@@ -31,12 +50,12 @@ class Skill extends React.Component {
               this
                 .state
                 .companies
-                .map((name,i)=>{
+                .map((item,i)=>{
                   return (
-                    <li key={i}>
+                    <li key={i} title={item.name} >
                       <span className={"company-rank" + (i < 3 ? " company-rank-" + (i+1).toString() : "d-none") }>
                       </span>
-                      <span style={{margin:4}}>{name}</span>
+                      <span style={{margin:4}}>{item.name.length > 15 ? item.name.substring(0,16) + "..." : item.name}</span>
                     </li>
                   );
                 })
@@ -53,63 +72,68 @@ class QueryResults extends React.Component {
   constructor() {
     super();
     this.state = {
-      items: [
-        {
-          name: "Node.js",
-          companies: [
-              "Facebook",
-              "Google",
-              "Amazon",
-              "Microsoft"
-          ]
-        },
-        {
-          name: "Python",
-          companies: [
-            "Youtube",
-            "SendGrid",
-            "Amazon",
-            "Netflix"
-          ]
-        },
-        {
-          name: "Javascript",
-          companies: [
-            "Asana",
-            "LeetCode",
-            "SSIMWAVE",
-            "Trello"
-          ]
-        },
-        {
-          name: "React",
-          companies: [
-            "Youtube",
-            "SendGrid",
-            "Apple",
-            "Netflix"
-          ]
-        },
-        {
-          name: "C++",
-          companies: [
-            "Facebook",
-            "SendGrid",
-            "HackerRank",
-            "Netflix"
-          ]
-        }
-      ]
+      page : 1,
+      updating : false, 
+      items : []
     };
+    this.addItems = this.addItems.bind(this);
+    this.onScroll = this.onScroll.bind(this);
+    
+    this.addItems("skills");
+  }
+  
+  addItems(collection) {
+    console.log(this.state.page);
+    let url = window.location.protocol + "//" + window.location.host + "/" + collection + "?page=" + this.state.page.toString() + "&limit=10";
+    console.log(url);
+    let comp = this;
+    $.getJSON(url, data => {
+      let newItems = this.state.items;
+      for(let i = 0; i < data.length; i++) {
+        let companies = [];
+        for (let j in data[i].companies) {
+          companies.push({
+            name : firebaseSafeDecode(j),
+            count : data[i].companies[j]
+          });
+        }
+        // sort in descending order
+        companies.sort((a, b) => {
+          return a.count - b.count;
+        });
+        companies.reverse();
+        // set the newly reconstructed company list
+        data[i].companies = companies;
+      }
+      console.log(data);
+      newItems = newItems.concat(data);
+
+      comp.setState({
+        page: this.state.page + 1,
+        items : newItems,
+        updating : false
+      });
+    });
   }
 
-  changeTitle(title) {
-    this.setState({title});
+  onScroll(event) {
+    // check if the scroll is near the bottom
+    let scroll = this.refs.results.scrollTop;
+    let height = this.refs.results.scrollHeight - this.refs.results.clientHeight;
+    // also check that we have not exceed the max pages
+    if(height - scroll < 100 && this.state.page < 10 && !this.state.updating) {
+      // prevent multiple calls
+      this.setState({
+        updating: true
+      })
+      // update
+      this.addItems("skills");
+    }
   }
 
   render() {
     return (
-      <ul className="results">
+      <ul className="results" ref="results" onScroll={this.onScroll}>
         {
           this.state.items.map((item,i)=>
             <li key={i} className="result">

@@ -95,7 +95,7 @@ function returnQuery(request, response, query, ref) {
             // if this is our last item, send the list to the client
             if (i == snapshot._size-1){
                 // cachings
-                //response.set('Cache-Control', 'public, max-age=' + CACHE_TIME.toString() + ', s-maxage' + CACHE_TIME.toString());
+                response.set('Cache-Control', 'public, max-age=' + CACHE_TIME.toString() + ', s-maxage' + CACHE_TIME.toString());
                 response.json(jobs)
             }
             i++;
@@ -116,7 +116,7 @@ app.get('/skills',(request,response) => {
     let query = querystring.parse(request.url.split('?')[1])
     let ref = db.collection('skills');
     
-    ref = ref.orderBy('totalCompanies','desc');
+    ref = ref.orderBy('total','desc');
     
     returnQuery(request, response, query, ref);
 })
