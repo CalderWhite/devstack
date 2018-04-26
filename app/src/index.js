@@ -14,7 +14,7 @@ import CircularProgress from 'material-ui/CircularProgress';
 import "./index.sass";
 
 // constants
-const MAX_RESULTS = 3;
+const MAX_RESULTS = 10;
 
 
 function firebaseSafeEncode(s){
