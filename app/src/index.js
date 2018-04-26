@@ -11,7 +11,11 @@ import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import CircularProgress from 'material-ui/CircularProgress';
 
 // import 1st party styles sheets
-import "./index.sass"
+import "./index.sass";
+
+// constants
+const MAX_RESULTS = 3;
+
 
 function firebaseSafeEncode(s){
     s = btoa(s);
@@ -28,7 +32,7 @@ function firebaseSafeDecode(s){
     let pad = s.charCodeAt(0) - 97;
     return atob(
       s.substring(1,s.length) + '='.repeat(pad)
-    )
+    );
 }
 
 class Skill extends React.Component {
@@ -37,7 +41,7 @@ class Skill extends React.Component {
     this.state = {
       companies: props.companies,
       text: props.name
-    }
+    };
     //console.log(this.state.companies)
   }
   render() {
@@ -79,7 +83,8 @@ class QueryResults extends React.Component {
     super();
     this.state = {
       page : 1,
-      updating : false, 
+      updating : false,
+      loadingAnimation : <CircularProgress size={60} thickness={5} />,
       items : []
     };
     this.addItems = this.addItems.bind(this);
@@ -116,12 +121,18 @@ class QueryResults extends React.Component {
       }
 
       newItems = newItems.concat(data);
-
-      comp.setState({
+      
+      let newState = {
         page: this.state.page + 1,
         items : newItems,
         updating : false
-      });
+      };
+      // get rid of the animation if no more can be loaded
+      if (this.state.page > MAX_RESULTS){
+        newState.loadingAnimation = <div></div>;
+      }
+      
+      comp.setState(newState);
     });
   }
 
@@ -130,11 +141,12 @@ class QueryResults extends React.Component {
     let scroll = this.refs.results.scrollTop;
     let height = this.refs.results.scrollHeight - this.refs.results.clientHeight;
     // also check that we have not exceed the max pages
-    if(height - scroll < 100 && this.state.page < 10 && !this.state.updating) {
+    // 100 is generally a good rule, add 60 as it is the height of the loading animation lingering at the bottom of the <ul>
+    if(height - scroll < 100 + 60 && this.state.page <= MAX_RESULTS && !this.state.updating) {
       // prevent multiple calls
       this.setState({
         updating: true
-      })
+      });
       // update
       this.addItems("skills");
     }
@@ -153,7 +165,7 @@ class QueryResults extends React.Component {
             </li>
           )
         }
-        <CircularProgress size={60} thickness={5} />
+        {this.state.loadingAnimation}
       </ul>
     );
   }
@@ -171,7 +183,7 @@ class App extends React.Component {
           <QueryResults />
         </center>
       </MuiThemeProvider>
-    )
+    );
   }
 }
 

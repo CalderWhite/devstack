@@ -70,7 +70,6 @@ function returnQuery(request, response, query, ref) {
             MAX_PAGE*(MAX_RESULTS/limit)
         )
     }
-    console.log((page-1)*limit);
     
     // since firebase requires a result to start after, the user would have to supply a result.
     // that's no issue functionally, however, from a security perspective there is no way
@@ -136,7 +135,6 @@ app.get('/jobs',(request, response) => {
     if (Object.keys(query).includes('skills')) {
         let skills = query.skills.split(',');;
         for (let i = skills.length; i--; ) {
-            console.log(firebaseSafeEncode(skills[i]))
             ref = ref.where(
                 'stack.' + firebaseSafeEncode(skills[i]),
                 '==',

@@ -82,9 +82,11 @@ class StackParser(object):
         
         self.REPLACES = [
             (r'<br/>',"\n"),
-            (r'( and\/or | and | or |[\,\/])',","),
+            (r'( and\/or | and | or |[\,\/])',","), # include stacks that are delimited by and, or, etc.
             (r'[,]+',", "),
-            (r'\\x[a-z0-9]{2}',"")
+            (r'\\x[a-z0-9]{2}',""), # remove character escapes
+            (r'^https?:\/\/.*[\r\n]*',''), # remove urls
+            (re.compile('(etc\.|e\.g\.|jobs|careers)',re.IGNORECASE),'')
         ]
     def replace_terms(self,s):
         for i in self.REPLACES:
