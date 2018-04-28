@@ -12,7 +12,6 @@ import CircularProgress from 'material-ui/CircularProgress';
 
 // import 1st party styles sheets
 import "./index.sass";
-
 // constants
 const MAX_RESULTS = 10;
 
