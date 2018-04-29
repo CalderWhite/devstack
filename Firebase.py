@@ -9,14 +9,12 @@ from firebase_admin import firestore
 from DevStackBoard.StackParser import PositionSummary
 
 class Firebase(object):
-    def __init__(self,env_name):
+    def __init__(self,filename):
         
         # decode the ENV variable of our credentials
         
         creds = json.loads(
-            base64.b64decode(
-                os.environ[env_name]
-            ).decode('utf-8')
+            open(filename).read()
         )
         
         # load them into firebase
