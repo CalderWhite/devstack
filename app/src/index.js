@@ -86,6 +86,7 @@ class QueryResults extends React.Component {
       loadingAnimation : <CircularProgress size={60} thickness={5} />,
       items : []
     };
+    this.scrollRef =
     this.addItems = this.addItems.bind(this);
     this.onScroll = this.onScroll.bind(this);
     this.componentDidMount = this.componentDidMount.bind(this);
@@ -93,6 +94,12 @@ class QueryResults extends React.Component {
   
   componentDidMount(){
     this.addItems("skills");
+    // if we are on mobile, the entire page is what is being scrolled
+    if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+      this.scrollRef = $('html');
+    } else {
+      this.scrollRef = this.refs.results;
+    }
   }
   
   addItems(collection) {
