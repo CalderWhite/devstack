@@ -81,11 +81,11 @@ class StackParser(object):
         self.BAD_CHARACTERS = list("(){}[]\n\t")
         
         self.REPLACES = [
+            (r'https?://[A-Za-z0-9\./]+',''), # remove urls
             (r'<br/>',"\n"),
             (r'( and\/or | and | or |[\,\/])',","), # include stacks that are delimited by and, or, etc.
             (r'[,]+',", "),
             (r'\\x[a-z0-9]{2}',""), # remove character escapes
-            (r'^https?:\/\/.*[\r\n]*',''), # remove urls
             (re.compile('(etc\.|e\.g\.|jobs|careers)',re.IGNORECASE),'')
         ]
     def replace_terms(self,s):
@@ -145,3 +145,8 @@ class StackParser(object):
                         commas.pop(i)
                         break
         return commas
+
+if __name__ == '__main__':
+    s = StackParser()
+    x = s.find_stacks("https://test.com/google/yuh")
+    print(x)
